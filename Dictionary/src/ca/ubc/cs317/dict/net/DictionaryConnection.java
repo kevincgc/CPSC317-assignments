@@ -37,11 +37,13 @@ public class DictionaryConnection {
 	 */
 	public DictionaryConnection(String host, int port) throws DictConnectionException {
 		try {
+			// Initialize connection
 			socket = new Socket(host, port);
 			input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			output = new PrintWriter(socket.getOutputStream());
+			
+			// Read welcome message
 			stat = Status.readStatus(input);
-
 			if (stat.getStatusCode() == 220) {
 				System.out.println("Connected! Welcome message: " + stat.getDetails());
 			} else {
@@ -111,6 +113,7 @@ public class DictionaryConnection {
 		if (stat.getStatusCode() == 150) {
 			int definitionCount = Integer.parseInt(DictStringParser.splitAtoms(stat.getDetails())[0]);
 			try {
+				// Parse each definition until "." input is received
 				for (int i = 0; i < definitionCount; i++) {
 					stat = Status.readStatus(input);
 					Definition definition = new Definition(word, DictStringParser.splitAtoms(stat.getDetails())[1]);
@@ -121,10 +124,12 @@ public class DictionaryConnection {
 					}
 					set.add(definition);
 				}
+
+				// Check for correct completion code
 				stat = Status.readStatus(input);
-				
 				if (stat.getStatusCode() != 250) {
-					throw new DictConnectionException("Expected code 250 but received " + stat.getStatusCode());
+					throw new DictConnectionException(
+							"Expected code 250 in getDefinitions but received " + stat.getStatusCode());
 				}
 			} catch (IOException e) {
 				throw new DictConnectionException("Connection issue in getDefinitions: ", e);
@@ -166,13 +171,15 @@ public class DictionaryConnection {
 		if (stat.getStatusCode() == 152) {
 			int matchCount = Integer.parseInt(DictStringParser.splitAtoms(stat.getDetails())[0]);
 			try {
+				// Parse matches
 				for (int i = 0; i < matchCount; i++) {
 					String match = input.readLine();
 					set.add(DictStringParser.splitAtoms(match)[1]);
 				}
+
+				// Check for correct completion code
 				input.readLine();
 				stat = Status.readStatus(input);
-				
 				if (stat.getStatusCode() != 250) {
 					throw new DictConnectionException(
 							"Expected code 250 in getMatchList but received " + stat.getStatusCode());
@@ -206,18 +213,20 @@ public class DictionaryConnection {
 		output.println("SHOW DB");
 		output.flush();
 		stat = Status.readStatus(input);
-		
+
 		if (stat.getStatusCode() == 110) {
 			int dbCount = Integer.parseInt(DictStringParser.splitAtoms(stat.getDetails())[0]);
 			try {
+				// Parse databases
 				for (int i = 0; i < dbCount; i++) {
 					String db = input.readLine();
 					databaseMap.put(DictStringParser.splitAtoms(db)[0],
 							new Database(DictStringParser.splitAtoms(db)[0], DictStringParser.splitAtoms(db)[1]));
 				}
+
+				// Check for correct completion code
 				input.readLine();
 				stat = Status.readStatus(input);
-				
 				if (stat.getStatusCode() != 250) {
 					throw new DictConnectionException(
 							"Expected code 250 in getDatabaseList but received " + stat.getStatusCode());
@@ -231,7 +240,7 @@ public class DictionaryConnection {
 		} else {
 			throw new DictConnectionException("Unexpected code " + stat.getStatusCode() + " in getDatabaseList");
 		}
-		
+
 		return databaseMap;
 	}
 
@@ -248,18 +257,20 @@ public class DictionaryConnection {
 		output.println("SHOW STRAT");
 		output.flush();
 		stat = Status.readStatus(input);
-		
+
 		if (stat.getStatusCode() == 111) {
 			int stratCount = Integer.parseInt(DictStringParser.splitAtoms(stat.getDetails())[0]);
 			try {
+				// Parse strategies
 				for (int i = 0; i < stratCount; i++) {
 					String strat = input.readLine();
 					set.add(new MatchingStrategy(DictStringParser.splitAtoms(strat)[0],
 							DictStringParser.splitAtoms(strat)[1]));
 				}
+
+				// Check for correct completion code
 				input.readLine();
 				stat = Status.readStatus(input);
-				
 				if (stat.getStatusCode() != 250) {
 					throw new DictConnectionException(
 							"Expected code 250 in getStrategyList but received " + stat.getStatusCode());
