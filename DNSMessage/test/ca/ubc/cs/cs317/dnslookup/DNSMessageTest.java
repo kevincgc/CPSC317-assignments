@@ -25,7 +25,8 @@ public class DNSMessageTest {
         message.setOpcode(15);
         message.setQR(true);
         message.setTC(true);
-        message.setAA(true);
+        message.setRD(true);
+        message.setRA(true);
         System.out.println(message);
     }
     @Test

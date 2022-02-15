@@ -15,12 +15,7 @@ public class DNSMessage {
 	 */
 	private final Map<String, Integer> nameToPosition = new HashMap<>();
 	private final Map<Integer, String> positionToName = new HashMap<>();
-	// TODO change to private
-	// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-	final ByteBuffer buffer;
-	// TODO delete
-	// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-	int origLen;
+	private final ByteBuffer buffer;
 
 	/**
 	 * Initializes an empty DNSMessage with the given id.
@@ -43,12 +38,11 @@ public class DNSMessage {
 		buffer = ByteBuffer.wrap(recvd, 0, length);
 		buffer.put(recvd, 0, length);
 		buffer.position(12);
-		origLen = length;
 	}
 
 	/**
 	 * Getters and setters for the various fixed size and fixed location fields of a
-	 * DNSMessage TODO: They are all to be completed
+	 * DNSMessage
 	 */
 	public int getID() {
 		int val = ((int) (buffer.get(0)) << 8 & 0xff00) | ((int) buffer.get(1) & 0xff);
@@ -261,24 +255,49 @@ public class DNSMessage {
 		return new DNSQuestion(name, rType, rClass);
 	}
 
+	/**
+	 * Decode and return the record type.
+	 *
+	 * @return The decoded record type
+	 */
 	public RecordType getRecordType() {
 		buffer.position(buffer.position() + 1);
 		return RecordType.getByCode(buffer.get());
 	}
 
+	/**
+	 * Decode and return the record class.
+	 *
+	 * @return The decoded record class
+	 */
 	public RecordClass getRecordClass() {
 		buffer.position(buffer.position() + 1);
 		return RecordClass.getByCode(buffer.get());
 	}
 
+	/**
+	 * Decode and return the time to live.
+	 *
+	 * @return The decoded TTL
+	 */
 	public int getTTL() {
 		return buffer.getInt();
 	}
 
+	/**
+	 * Decode and return the length of the RDATA field.
+	 *
+	 * @return The decoded length of the RDATA field
+	 */
 	public int getRDLength() {
 		return (int) buffer.getShort() & 0xffff;
 	}
 
+	/**
+	 * Decode and return the RDATA based on the input RDLENGTH.
+	 *
+	 * @return The decoded RDATA
+	 */
 	public byte[] getAddress(int length) {
 		byte[] byteArray = new byte[length];
 		buffer.get(byteArray, 0, length);
@@ -328,9 +347,7 @@ public class DNSMessage {
 	 * @param data a byte array containing the record data.
 	 * @return A string containing the hex value of every byte in the data.
 	 */
-	// TODO: change back to private
-	// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-	static String byteArrayToHexString(byte[] data) {
+	private static String byteArrayToHexString(byte[] data) {
 		return IntStream.range(0, data.length).mapToObj(i -> String.format("%02x", data[i])).reduce("", String::concat);
 	}
 
@@ -373,13 +390,23 @@ public class DNSMessage {
 		addRRQuestion(question);
 		setQDCount(getQDCount() + 1);
 	}
-	
+
+	/**
+	 * Helper for addQuestion. Does not increment QD count.
+	 * 
+	 * @param question The question to be added
+	 */
 	public void addRRQuestion(DNSQuestion question) {
 		addName(question.getHostName());
 		addQType(question.getRecordType());
 		addQClass(question.getRecordClass());
 	}
 
+	/**
+	 * Add time to live to the message at the current position
+	 * 
+	 * @param ttl The time to live value
+	 */
 	public void addTTL(long ttl) {
 		buffer.put((byte) ((ttl >> 24) & 0xff));
 		buffer.put((byte) ((ttl >> 16) & 0xff));
@@ -399,7 +426,7 @@ public class DNSMessage {
 		switch (rr.getRecordType()) {
 		case AAAA:
 		case A:
-			len = new byte[] { 0x00, (byte)rr.getInetResult().getAddress().length };
+			len = new byte[] { 0x00, (byte) rr.getInetResult().getAddress().length };
 			buffer.put(len);
 			buffer.put(rr.getInetResult().getAddress());
 			break;
@@ -416,7 +443,6 @@ public class DNSMessage {
 			System.out.println("addResourceRecord RecordType invalid");
 		}
 		setARCount(getARCount() + 1);
-		System.out.println(byteArrayToHexString(getUsed()));
 	}
 
 	/**
