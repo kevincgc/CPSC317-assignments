@@ -10,9 +10,6 @@ import java.util.stream.IntStream;
 
 public class DNSMessage {
 	public static final int MAX_DNS_MESSAGE_LENGTH = 512;
-	/**
-	 * TODO: You will add additional constants and fields
-	 */
 	private final Map<String, Integer> nameToPosition = new HashMap<>();
 	private final Map<Integer, String> positionToName = new HashMap<>();
 	private final ByteBuffer buffer;
