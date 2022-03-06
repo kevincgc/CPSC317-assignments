@@ -10,6 +10,7 @@ import java.util.stream.IntStream;
 
 public class DNSMessage {
 	public static final int MAX_DNS_MESSAGE_LENGTH = 512;
+	public static final int QUERY = 0;
 	private final Map<String, Integer> nameToPosition = new HashMap<>();
 	private final Map<Integer, String> positionToName = new HashMap<>();
 	private final ByteBuffer buffer;
@@ -121,8 +122,16 @@ public class DNSMessage {
 		return buffer.getShort(6);
 	}
 
+	public void setANCount(int count) {
+		buffer.putShort(6, (short) count);
+	}
+
 	public int getNSCount() {
 		return buffer.getShort(8);
+	}
+
+	public void setNSCount(int count) {
+		buffer.putShort(8, (short) count);
 	}
 
 	public int getARCount() {
@@ -131,6 +140,12 @@ public class DNSMessage {
 
 	public void setARCount(int count) {
 		buffer.putShort(10, (short) count);
+	}
+
+	// TODO Del
+	// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+	public int getBufferPosition() {
+		return buffer.position();
 	}
 
 	/**
@@ -331,8 +346,10 @@ public class DNSMessage {
 			String address = getName();
 			return new ResourceRecord(question, ttl, address);
 		default:
-			System.out.println("getRR RecordType invalid");
-			return null;
+			System.out.println("getRR RecordType not AAAA, A, MX, CNAME or NS");
+			byte[] byteArray = new byte[rdLength];
+			buffer.get(byteArray, 0, rdLength);
+			return new ResourceRecord(question, ttl, byteArrayToHexString(byteArray));
 		}
 	}
 
@@ -344,7 +361,9 @@ public class DNSMessage {
 	 * @param data a byte array containing the record data.
 	 * @return A string containing the hex value of every byte in the data.
 	 */
-	private static String byteArrayToHexString(byte[] data) {
+	// TODO Change to private
+	// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+	public static String byteArrayToHexString(byte[] data) {
 		return IntStream.range(0, data.length).mapToObj(i -> String.format("%02x", data[i])).reduce("", String::concat);
 	}
 
@@ -414,9 +433,10 @@ public class DNSMessage {
 	/**
 	 * Add an encoded resource record to the message at the current position.
 	 * 
-	 * @param rr The resource record to be added
+	 * @param rr      The resource record to be added
+	 * @param section A string describing the section that the rr should be added to
 	 */
-	public void addResourceRecord(ResourceRecord rr) {
+	public void addResourceRecord(ResourceRecord rr, String section) {
 		addRRQuestion(rr.getQuestion());
 		addTTL(rr.getRemainingTTL());
 		byte[] len;
@@ -437,9 +457,21 @@ public class DNSMessage {
 			addName(rr.getTextResult());
 			break;
 		default:
-			System.out.println("addResourceRecord RecordType invalid");
+			System.out.println("addResourceRecord Invalid RecordType");
 		}
-		setARCount(getARCount() + 1);
+		switch (section) {
+		case "answer":
+			setANCount(getANCount() + 1);
+			break;
+		case "nameserver":
+			setNSCount(getNSCount() + 1);
+			break;
+		case "additional":
+			setARCount(getARCount() + 1);
+			break;
+		default:
+			System.out.println("addResourceRecord Invalid Section String");
+		}
 	}
 
 	/**

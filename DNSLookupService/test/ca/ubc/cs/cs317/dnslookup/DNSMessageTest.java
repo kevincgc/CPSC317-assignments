@@ -57,6 +57,7 @@ public class DNSMessageTest {
         assertEquals(request.getANCount(), reply.getANCount());
         assertEquals(request.getNSCount(), reply.getNSCount());
         assertEquals(request.getARCount(), reply.getARCount());
+        assertEquals(request.getANCount(), 1);
         ResourceRecord replyRR = reply.getRR();
         assertEquals(rr, replyRR);
     }

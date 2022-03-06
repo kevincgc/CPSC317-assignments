@@ -109,10 +109,10 @@ public class DNSLookupServiceTest {
     }
 
 
-    @Test
-    public void testBuildQueryA() {
-        buildQueryCommonTest(new DNSQuestion("ubc.ca", RecordType.A, RecordClass.IN));
-    }
+//    @Test
+//    public void testBuildQueryA() {
+//        buildQueryCommonTest(new DNSQuestion("ubc.ca", RecordType.A, RecordClass.IN));
+//    }
 
     @Test
     public void testProcessResponseSingleAnswer() throws UnknownHostException {
