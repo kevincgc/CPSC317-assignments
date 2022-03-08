@@ -33,7 +33,7 @@ public class DNSQuestion implements Comparable<DNSQuestion>, Serializable {
 
     @Override
     public String toString() {
-        return (hostName.isEmpty() ? "<root>" : hostName) + " (" + type + ")";
+        return (hostName.isEmpty() ? "<root>" : hostName) + " (" + type + ")" + " (" + recordClass + ")";
     }
 
     @Override

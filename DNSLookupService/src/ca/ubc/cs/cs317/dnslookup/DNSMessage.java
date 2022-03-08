@@ -142,8 +142,6 @@ public class DNSMessage {
 		buffer.putShort(10, (short) count);
 	}
 
-	// TODO Del
-	// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 	public int getBufferPosition() {
 		return buffer.position();
 	}
@@ -361,8 +359,6 @@ public class DNSMessage {
 	 * @param data a byte array containing the record data.
 	 * @return A string containing the hex value of every byte in the data.
 	 */
-	// TODO Change to private
-	// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 	public static String byteArrayToHexString(byte[] data) {
 		return IntStream.range(0, data.length).mapToObj(i -> String.format("%02x", data[i])).reduce("", String::concat);
 	}

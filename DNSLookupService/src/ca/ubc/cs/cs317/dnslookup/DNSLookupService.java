@@ -158,25 +158,25 @@ public class DNSLookupService {
 		if (cache.getCachedResults(question, true).size() > 0) {
 			return;
 		}
-		
+
 		if (set.size() > 0) {
-			System.out.println("=============Print set================");
 			Iterator<ResourceRecord> it = set.iterator();
-			while(it.hasNext()){
+			while (it.hasNext()) {
 				ResourceRecord rr = it.next();
-				System.out.println(rr);
-				System.out.println(cache.getCachedResults(rr.getQuestion(), true));
+				DNSQuestion q = new DNSQuestion(rr.getTextResult(), RecordType.A, RecordClass.IN);
+				List<ResourceRecord> list = cache.getCachedResults(q, true);
+				if (list.size() > 0) {
+					iterativeQuery(question, list.get(0).getInetResult());
+					return;
+				}
+				q = new DNSQuestion(rr.getTextResult(), RecordType.AAAA, RecordClass.IN);
+				list = cache.getCachedResults(q, true);
+				if (list.size() > 0) {
+					iterativeQuery(question, list.get(0).getInetResult());
+					return;
+				}
 			}
-//			for (int i = 0; i < set.size(); i++) {
-//				if (records[i].getInetResult().) {
-//					iterativeQuery(question, ((ResourceRecord)set.toArray()[0]).getInetResult());
-//					break;
-//				}
-//			}
-			
-		}		
-		
-		/* TO BE COMPLETED BY THE STUDENT */
+		}
 	}
 
 	/**
@@ -205,42 +205,37 @@ public class DNSLookupService {
 		DNSMessage requestMsg = buildQuery(question);
 		int id = requestMsg.getID();
 		verbose.printQueryToSend(question, server, id);
-		
+
 		int tries = 1;
 		try {
-		    byte[] bytesSend = requestMsg.getUsed();
-		    byte[] bytesReceive = new byte[512];
-		    DatagramPacket packetSend = new DatagramPacket(bytesSend, bytesSend.length, server, DEFAULT_DNS_PORT);
-		    DatagramPacket packetReceive = new DatagramPacket(bytesReceive, bytesReceive.length);
-		    DNSMessage responseMsg;
-		    socket.setSoTimeout(SO_TIMEOUT);
-		    while(tries <= MAX_QUERY_ATTEMPTS) {
-		        try {
-		        	System.out.println("sending...");
-		        	socket.send(packetSend);
-		        	do {
-		        		System.out.println("receiving...");
-		        		socket.receive(packetReceive);
-		        		System.out.println("received...");
-		        		responseMsg = new DNSMessage(bytesReceive, packetReceive.getLength());
-		        		// TODO DELETE
-		        		// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-		        		System.out.println(DNSMessage.byteArrayToHexString(responseMsg.getUsed()));
-		        	} while (responseMsg.getID() != requestMsg.getID());
-		        	if (responseMsg.getID() == requestMsg.getID()) {
-		        		return processResponse(responseMsg);
-		        	}
-		        }
-		        catch (IOException e) {
-		            System.out.println("Timeout. Retrying " + tries + " out of " + MAX_QUERY_ATTEMPTS + " times.");
-		            tries++;
-		        }
-		    }
+			byte[] bytesSend = requestMsg.getUsed();
+			byte[] bytesReceive = new byte[512];
+			DatagramPacket packetSend = new DatagramPacket(bytesSend, bytesSend.length, server, DEFAULT_DNS_PORT);
+			DatagramPacket packetReceive = new DatagramPacket(bytesReceive, bytesReceive.length);
+			DNSMessage responseMsg;
+			socket.setSoTimeout(SO_TIMEOUT);
+
+			while (tries <= MAX_QUERY_ATTEMPTS) {
+				try {
+					socket.send(packetSend);
+
+					while (true) {
+						socket.receive(packetReceive);
+						responseMsg = new DNSMessage(bytesReceive, packetReceive.getLength());
+
+						if (responseMsg.getID() == requestMsg.getID()) {
+							return processResponse(responseMsg);
+						}
+					}
+				} catch (IOException e) {
+					System.out.println("Timeout. Retrying " + tries + " out of " + MAX_QUERY_ATTEMPTS + " times.");
+					tries++;
+				}
+			}
+		} catch (SocketException e) {
+			System.out.println("individualQueryProcess failed to set socket timeout " + e);
 		}
-		catch (SocketException e) {
-		    System.out.println("individualQueryProcess failed to set socket timeout " + e);
-		}
-		
+
 		return null;
 	}
 
@@ -259,9 +254,7 @@ public class DNSLookupService {
 		short id = (short) (rand.nextInt(65536) - 32768);
 		DNSMessage message = new DNSMessage(id);
 		message.addQuestion(question);
-		// TODO DELETE
-		// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-		System.out.println("Build query: " + DNSMessage.byteArrayToHexString(message.getUsed()));
+
 		return message;
 	}
 
@@ -285,7 +278,7 @@ public class DNSLookupService {
 		verbose.printResponseHeaderInfo(response.getID(), response.getAA(), response.getRcode());
 		DNSQuestion question = response.getQuestion();
 
-		// Only add to set if section is NS and type is NS
+		// Process records in each section
 		verbose.printAnswersHeader(response.getANCount());
 		for (int i = 0; i < response.getANCount(); i++) {
 			processRR(response, set, false);
@@ -301,10 +294,16 @@ public class DNSLookupService {
 
 		return set;
 	}
-	
+
+	/**
+	 * Helper method that processes a single resource record.
+	 *
+	 * @param response The DNSMessage received from the server.
+	 * @param set      The set of resource records to add NS entries
+	 * @param isNS     Whether the record is found in the NS section
+	 */
 	private void processRR(DNSMessage response, Set<ResourceRecord> set, boolean isNS) {
 		ResourceRecord rr = response.getRR();
-		System.out.println(rr);
 		cache.addResult(rr);
 		verbose.printIndividualResourceRecord(rr, rr.getRecordType().getCode(), rr.getRecordClass().getCode());
 		if (rr.getRecordType() == RecordType.NS) {

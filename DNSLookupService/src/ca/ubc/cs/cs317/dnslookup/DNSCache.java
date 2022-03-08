@@ -84,7 +84,8 @@ public class DNSCache {
      * @param record Resource record, possibly obtained from a DNS server, containing the result of a DNS query.
      */
     public void addResult(ResourceRecord record) {
-
+//    	System.out.println("adding :" + record);
+//    	System.out.println("cache: " + cachedResults);
         if (record.isExpired()) return;
 
         Set<ResourceRecord> results = cachedResults.computeIfAbsent(record.getQuestion(), q -> new HashSet<>());
